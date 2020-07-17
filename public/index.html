@@ -1,0 +1,197 @@
+<!--https://github.com/c9/c9.ide.language.codeintel/blob/master/README.md-->
+<html>
+   <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>Action TestField</title>
+    
+    <head>
+       <style type="text/css">
+          .widthFlex{
+             width: 100%;
+             height: 90vh;
+             display: flex;
+             
+          }
+          .touchField{
+             width: 100%;
+             height: 100%;
+             background: #D4EAFF;
+             border-radius: 10px;
+          }
+          .heartimg{
+             width: 80px;
+             height: 80px;
+             position: absolute;
+             top: 40px;
+             left: 50px;
+          }
+         .heartimg_small{
+            /*width: 40px;*/
+            /* height: 40px;*/
+            /* position: absolute;*/
+            /* top: 20px;*/
+            /* left: 50px;*/
+             width: 40px;
+             height: 40px;
+             position: absolute;
+             top: 20px;
+             left: 50px;
+          }
+       </style>
+    </head>
+    
+<body onload="init();">
+   <div class="widthFlex">
+      <div id="touchField" class="touchField" ontouchmove="fieldTouchDrag(event)">
+         <!--<img id="heart_1" class="heartimg" src="heart.png"></img>-->
+      </div>
+   </div>
+   <div id="data"></div>
+   <div id="target1"> Touch me ... </div>
+   <div id="target2" ontouchmove="moveTouch(event)"> Touch me ... </div>
+   <div id="target3"> Touch me ... </div>
+   <div id="target4" ontouchmove="fieldDrag(event)"> Touch me ... </div>
+</body>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/socket.io/2.0.3/socket.io.js"></script>
+<script>
+   //deal with touch drag
+   var socket = io.connect("http://atkm.xyz:10716");
+   function init() {
+      var el = document.getElementById("target1");
+      el.ontouchmove = fieldTouchDrag;
+   }
+   
+   
+   //-------------DEAL WITH CLICK (SOPLO DE CORAZON)-----------------
+   
+   function fieldMouseClick(ev){
+      var inX = ev.clientX;
+      var inY = ev.clientY;
+      var outX = ev.currentTarget.clientWidth;
+      var outY = ev.currentTarget.clientHeight;
+      fieldClick(inX, inY, outX, outY);
+   }
+   function fieldTouchClick(ev){
+      var inX = ev.touches[0].clientX;
+      var inY = ev.touches[0].clientY;
+      var outX = ev.path[0].clientWidth;
+      var outY = ev.path[0].clientHeight;
+      fieldClick(inX, inY, outX, outY);
+   }
+   var clickCount = 0;
+   var fadeTime = 10000;
+   function fieldClick(inX, inY, outX, outY){
+      
+      inX =  Math.round(inX);
+      inY =  Math.round(inY);
+      outX = Math.round(outX);
+      outY = Math.round(outY);
+      document.getElementById("data").innerHTML = "CLICK<br>("+inX+","+inY+")<br>("+outX+","+outY+")";
+      clickCount++;
+      var thisClickCount = clickCount;
+      $("#touchField").append ('<img id="heart_'+thisClickCount+'" class="heartimg" src="cake.png"></img>');
+      $("#heart_"+thisClickCount).css("top", inY-20).css("left", inX-20).fadeOut(fadeTime);
+      window.setTimeout(function(){$("#heart_"+thisClickCount).remove();}, fadeTime);
+      socket.emit("drawing",{
+         stroke: 0,
+         inX: inX,
+         inY: inY,
+         outX: outX,
+         outY: outY
+      });
+   }
+   
+   //-------------DEAL WITH DRAG (DRAW LINE)-------------------------
+   function fieldTouchDrag(ev){
+      // console.log(ev);
+      ev.preventDefault();
+      var inX = ev.touches[0].clientX;
+      var inY = ev.touches[0].clientY;
+      var outX = ev.path[0].clientWidth;
+      var outY = ev.path[0].clientHeight;
+      fieldDrag(inX, inY, outX, outY);
+      // fieldClick(inX, inY, outX, outY);
+   }
+   
+   function fieldMouseDrag(ev) {
+      // Process the event
+      // console.log(ev);
+      var inX = ev.clientX;
+      var inY = ev.clientY;
+      var outX = ev.currentTarget.clientWidth;
+      var outY = ev.currentTarget.clientHeight;
+      fieldDrag(inX, inY, outX, outY);
+   }
+   
+   function fieldDrag(inX, inY, outX, outY){
+      inX =  Math.round(inX);
+      inY =  Math.round(inY);
+      outX = Math.round(outX);
+      outY = Math.round(outY);
+      document.getElementById("data").innerHTML = "DRAG<br>("+inX+","+inY+")<br>("+outX+","+outY+")";
+      
+      clickCount++;
+      inX =  Math.round(inX);
+      inY =  Math.round(inY);
+      outX = Math.round(outX);
+      outY = Math.round(outY);
+      var thisClickCount = clickCount;
+      $("#touchField").append ('<img id="heart_'+thisClickCount+'" class="heartimg_small" src="candle.png"></img>');
+      $("#heart_"+thisClickCount).css("top", inY-5).css("left", inX-5).fadeOut(fadeTime);
+      window.setTimeout(function(){$("#heart_"+thisClickCount).remove();}, fadeTime);
+      socket.emit("drawing",{
+         stroke: 1,
+         inX: inX,
+         inY: inY,
+         outX: outX,
+         outY: outY
+      });
+   }
+   //deal with mouse drag
+   var flag = 0, clicked = 0;
+   var element = document.getElementById("touchField");
+   // element.addEventListener("ontouchmove", fieldDrag);
+   element.onmousedown = function() {
+      flag = 0;
+      clicked = 1;
+   };
+   element.onmousemove = function(ev) {
+      flag = 1;
+      ev.preventDefault();
+      if(clicked == 1){
+         fieldMouseDrag(ev);
+      }
+   };
+   element.onmouseup = function(ev) {
+      clicked = 0;
+      if (flag === 0) {
+         fieldMouseClick(ev);
+      }
+   };
+   
+   
+   function onDrawingEvent(data){
+      var d = 5, c = "heartimg_small", imgsrc = "candle.png";
+      if(data.stroke == 0) {
+         d=20;
+         c="heartimg";
+         imgsrc="cake.png";
+      }
+      var tgtWidth = $("#touchField").width();
+      var tgtHeight = $("#touchField").height();
+      var inX = data.inX / data.outX * tgtWidth;
+      var inY = data.inY / data.outY * tgtHeight;
+      clickCount++;
+      var thisClickCount = clickCount;
+      $("#touchField").append ('<img id="heart_'+thisClickCount+'" class="'+c+'" src='+imgsrc+'></img>');
+      $("#heart_"+thisClickCount).css("top", inY-d).css("left", inX-d).fadeOut(fadeTime);
+      window.setTimeout(function(){$("#heart_"+thisClickCount).remove();}, fadeTime);
+   }
+   
+   socket.on("drawing", onDrawingEvent);
+</script>
+
+
+</html>
